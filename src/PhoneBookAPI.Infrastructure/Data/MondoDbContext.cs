@@ -1,3 +1,6 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using PhoneBookAPI.Core.Entities;
 using PhoneBookAPI.Infrastructure.Data.Configurations;
@@ -12,7 +15,7 @@ namespace PhoneBookAPI.Infrastructure.Data
         public MongoDbContext(MongoDbSettings settings)
         {
             _settings = settings;
-            BsonDefaults.GuidRepresentation = GuidRepresentation.Standard;
+            BsonSerializer.RegisterSerializer(typeof(Guid), new GuidSerializer(GuidRepresentation.Standard));
             
             var client = new MongoClient(_settings.ConnectionString);
             _database = client.GetDatabase(_settings.DatabaseName);
