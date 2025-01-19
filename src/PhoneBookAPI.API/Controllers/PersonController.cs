@@ -13,15 +13,19 @@ namespace PhoneBookAPI.API.Controllers
     {
         private readonly IPersonService _personService;
 
-        public PersonController(IPersonService personService)
+        private readonly ICacheService _cacheService;
+
+        public PersonController(IPersonService personService, ICacheService cacheService)
         {
             _personService = personService;
+            _cacheService = cacheService;
         }
 
         [HttpPost]
         public async Task<ActionResult<PersonDto>> CreatePerson([FromBody] CreatePersonDto createPersonDto)
         {
             var result = await _personService.CreatePersonAsync(createPersonDto);
+            await _cacheService.RemoveAsync(result.Id);
             return CreatedAtAction(nameof(GetPerson), new { id = result.Id }, result);
         }
 

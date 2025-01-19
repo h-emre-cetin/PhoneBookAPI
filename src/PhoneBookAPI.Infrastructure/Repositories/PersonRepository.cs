@@ -52,27 +52,35 @@ namespace PhoneBookAPI.Infrastructure.Repositories
                 .ToListAsync();
         }
 
-        public async Task<Dictionary<string, (int PersonCount, int PhoneNumberCount)>> GetLocationStatisticsAsync()
+        public async Task<Dictionary<string, LocationStatistics>> GetLocationStatisticsAsync()
         {
-            var persons = await _persons.Find(_ => true).ToListAsync();
-            
-            return persons
-                .SelectMany(p => p.ContactInformation
-                    .Where(c => c.Type == ContactType.Location && c.IsActive)
-                    .Select(c => new
+            var persons = await _persons.Find(FilterDefinition<Person>.Empty).ToListAsync();
+
+            var locationStats = new Dictionary<string, LocationStatistics>();
+
+            foreach (var person in persons)
+            {
+                foreach (var contact in person.ContactInformation.Where(c => c.IsActive))
+                {
+                    if (!locationStats.ContainsKey(contact.Value))
                     {
-                        Location = c.Value,
-                        PersonId = p.Id,
-                        PhoneNumbers = p.ContactInformation.Count(ci => 
-                            ci.Type == ContactType.PhoneNumber && ci.IsActive)
-                    }))
-                .GroupBy(x => x.Location)
-                .ToDictionary(
-                    g => g.Key,
-                    g => (
-                        PersonCount: g.Select(x => x.PersonId).Distinct().Count(),
-                        PhoneNumberCount: g.Sum(x => x.PhoneNumbers)
-                    ));
+                        locationStats[contact.Value] = new LocationStatistics
+                        {
+                            PersonCount = 0,
+                            PhoneNumberCount = 0
+                        };
+                    }
+
+                    locationStats[contact.Value].PersonCount++;
+
+                    if (contact.Type == ContactType.PhoneNumber)
+                    {
+                        locationStats[contact.Value].PhoneNumberCount++;
+                    }
+                }
+            }
+
+            return locationStats;
         }
 
         public async Task UpdateAsync(Person entity)
